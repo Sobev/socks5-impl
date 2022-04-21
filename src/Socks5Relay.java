@@ -14,7 +14,7 @@ public class Socks5Relay {
         Socket socket = null;
         try {
             socket = new Socket(addr, port);
-            socket.setSoTimeout(10*1000);
+            socket.setSoTimeout(3*1000);
 
             Socks5Pipe c2s = new Socks5Pipe(client, socket, "c2s");
             Socks5Pipe s2c = new Socks5Pipe(socket, client, "s2c");
@@ -53,14 +53,13 @@ public class Socks5Relay {
                 byte[] recv = new byte[1024];
                 int len = 0;
                 while((len = is.read(recv)) > 0){
-                    String s = new String(recv, 0, len);
-                    System.out.println("received bytes =\n " + s);
+                    System.out.println("received bytes =\n " + len);
                     os.write(recv, 0, len);
                 }
                 close();
             } catch (IOException e) {
-                e.printStackTrace();
                 close();
+                System.out.println(e.getMessage());
             }
         }
 
@@ -72,8 +71,7 @@ public class Socks5Relay {
                     if(!target.isInputShutdown())
                         target.shutdownInput();
                 } catch (IOException e) {
-                    System.out.println("close socket error");
-                    e.printStackTrace();
+                    System.out.println("close socket error" + e.getMessage());
                 }
         }
     }

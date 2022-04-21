@@ -55,7 +55,7 @@ public class Socks5Handler {
             for (int i = 0; i < nMethods; i++) {
                 byte method = recv[i + 2];
                 if(method == 0x02) {
-                    os.write(new byte[]{5, 0});
+                    os.write(new byte[]{5, 2});
                     //do authentication
                     if(doAuthentication(client)){
                         //waiting requests
@@ -67,7 +67,7 @@ public class Socks5Handler {
 
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
 
@@ -120,7 +120,7 @@ public class Socks5Handler {
             return true;
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
         return false;
     }
@@ -209,16 +209,15 @@ public class Socks5Handler {
                 return;
             }
             String target = new String(addr);
-            System.out.println("target = " + target);
             byte[] port = new byte[]{recv[5 + recv[4]], recv[6 + recv[4]]};
             int targetPort = (port[0] & 0xff) << 8 | (port[1] & 0xff);
-            System.out.println("targetPort = " + targetPort);
+            System.out.println("target = " + target + ":" + targetPort);
             os.write(new byte[]{5, 0, 0, addType, 0, 0, 0, 0, 0, 0,});
 
             relay.doRelay(client, target, targetPort);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
 }

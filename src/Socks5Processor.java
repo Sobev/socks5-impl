@@ -22,7 +22,7 @@ public class Socks5Processor implements Runnable{
         while(true){
             try {
                 Socket socket = queue.take();
-                handler.handle(socket, true);
+                handler.handle(socket, false);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
