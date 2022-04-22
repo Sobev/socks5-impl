@@ -37,6 +37,10 @@ public class HttpParser {
 
     public StringBuilder generateRequestHeader(){
         StringBuilder builder = new StringBuilder();
+        if(method.equals("CONNECT")) {
+            method = "GET";
+            uri = "/";
+        }
         builder.append(method + " " + uri + " " + httpVersion + "\r\n");
         headers.forEach((k, v) -> {
             builder.append(k + ": " + v + "\r\n");
@@ -59,6 +63,7 @@ public class HttpParser {
             uri = "/";
             httpVersion = "HTTP/1.1";
         }else {
+            //TODO: method not allowed
             method = requestLineArr[0];
             uri = requestLineArr[1];
             httpVersion = requestLineArr[2];

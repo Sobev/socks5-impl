@@ -101,7 +101,6 @@ public class SocketClient{
                     return;
                 }
                 //find host
-                //TODO:
                 String httpreq = new String(cbuf, 0, len);
                 HttpParser parse = HttpParser.parse(httpreq);
                 String[] addr_port = parse.getAddrPort();
