@@ -23,7 +23,7 @@ public class Socks5Relay {
 //            c2s.relay();
 //            s2c.relay();
             byPass(client, addr, port);
-
+//                SSLHttpsTest.testSocketSSL(client);
         } catch (IOException e) {
             System.err.println("relay1: " + e.getMessage());
         }
@@ -86,7 +86,7 @@ public class Socks5Relay {
                 while((len = is.read(recv)) > 0){
                     os.write(recv, 0, len);
                 }
-                close();
+//                close();
             } catch (IOException e) {
                 close();
                 System.err.println("relay2: " + e.getMessage());

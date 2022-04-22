@@ -58,7 +58,7 @@ public class SSLSocks5Pipe implements Runnable{
                 }
                 os.write(recv, 0, len);
             }
-                close();
+//                close();
         } catch (IOException e) {
             close();
             System.err.println("relay2: " + e.getMessage());

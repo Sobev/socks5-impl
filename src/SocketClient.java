@@ -150,8 +150,8 @@ public class SocketClient{
                 len = 0;
                 while((len = sis.read(httpres)) != -1){
                     cos.write(httpres, 0, len);
-//                    String responseText = new String(httpres, 0, len);
-//                    System.out.println(responseText);
+                    String responseText = new String(httpres, 0, len);
+                    System.out.println(responseText);
                 }
             } catch (IOException e) {
                 e.printStackTrace();

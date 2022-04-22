@@ -37,10 +37,6 @@ public class HttpParser {
 
     public StringBuilder generateRequestHeader(){
         StringBuilder builder = new StringBuilder();
-        if(method.equals("CONNECT")) {
-            method = "GET";
-            uri = "/";
-        }
         builder.append(method + " " + uri + " " + httpVersion + "\r\n");
         headers.forEach((k, v) -> {
             builder.append(k + ": " + v + "\r\n");
@@ -76,7 +72,8 @@ public class HttpParser {
             String[] arr = item.split(": ");
             headers.put(arr[0], arr[1]);
         }
-        fillHeaders(headers);
+        if(!method.equals("CONNECT"))
+            fillHeaders(headers);
         return new HttpParser(method, uri, httpVersion, headers);
     }
 

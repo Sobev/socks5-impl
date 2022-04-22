@@ -5,6 +5,7 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.Socket;
 
 /**
  * @description:
@@ -13,35 +14,37 @@ import java.io.OutputStream;
  */
 public class SSLHttpsTest {
     public static void main(String[] args) {
-        testSocketSSL();
+        try {
+            testSocketSSL(null);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public static void testSocketSSL(){
-        try {
+    public static void testSocketSSL(Socket client) throws IOException {
             SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket("httpbin.org", 443);
+            SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket("urcate.shop", 443);
             String[] supportedCipherSuites = socket.getSupportedCipherSuites();
             socket.setEnabledCipherSuites(supportedCipherSuites);
             OutputStream os = socket.getOutputStream();
             InputStream is = socket.getInputStream();
             StringBuilder builder = new StringBuilder();
-            builder.append("GET " + "/get" + " HTTP/1.1\r\n");
-            builder.append("Host: httpbin.org:443\r\n");
+            builder.append("GET " + "/" + " HTTP/1.1\r\n");
+            builder.append("Host: urcate.shop:443\r\n");
             builder.append("User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727; TheWorld)\r\n");
             builder.append("Accept: text/html,application/xhtml+xml,application/xml.application/json;q=0.9,*/*;q=0.8\r\n");
             builder.append("Accept-Language: en-US;q=0.7,en;q=0.3\r\n");
             builder.append("Connection: close\r\n\r\n");
             byte[] data = builder.toString().getBytes();
+            OutputStream cos = client.getOutputStream();
             os.write(data);
             byte[] recv = new byte[1024];
             int len;
             while ((len = is.read(recv)) != -1){
                 String s = new String(recv, 0, len);
                 System.out.println("s = " + s);
+                cos.write(recv, 0, len);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     public static void testServerSocket(){
