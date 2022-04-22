@@ -14,7 +14,7 @@ public class Socks5Relay {
         Socket socket = null;
         try {
             socket = new Socket(addr, port);
-            socket.setSoTimeout(3*1000);
+            socket.setSoTimeout(6*1000);
 
             Socks5Pipe c2s = new Socks5Pipe(client, socket, "c2s");
             Socks5Pipe s2c = new Socks5Pipe(socket, client, "s2c");
@@ -23,7 +23,7 @@ public class Socks5Relay {
             s2c.relay();
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("relay1: " + e.getMessage());
         }
     }
 
@@ -50,28 +50,28 @@ public class Socks5Relay {
             try {
                 InputStream is = src.getInputStream();
                 OutputStream os = target.getOutputStream();
-                byte[] recv = new byte[1024];
+                byte[] recv = new byte[8192];
                 int len = 0;
                 while((len = is.read(recv)) > 0){
-                    System.out.println("received bytes =\n " + len);
+                    //System.out.println("received bytes =\n " + len);
                     os.write(recv, 0, len);
                 }
-                close();
+//                close();
             } catch (IOException e) {
                 close();
-                System.out.println(e.getMessage());
+                System.err.println("relay2: " + e.getMessage());
             }
         }
 
         private void close(){
                 try {
-                    System.out.println(id + " close");
+//                    System.out.println(id + " close");
                     if(!src.isClosed())
                         src.close();
                     if(!target.isInputShutdown())
                         target.shutdownInput();
                 } catch (IOException e) {
-                    System.out.println("close socket error" + e.getMessage());
+                    System.err.println("relay :close socket error" + e.getMessage());
                 }
         }
     }

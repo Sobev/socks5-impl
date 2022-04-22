@@ -3,14 +3,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @description:
  * @author: sobev
  * @create 2022-04-20  14:34
+ * TODO: []加密请求
+ * TODO: []支持https
  */
 public class SocketClient{
 
@@ -81,37 +80,21 @@ public class SocketClient{
                 InputStream sis = ss.getInputStream();
                 OutputStream sos = ss.getOutputStream();
                 //step 1
-                byte[] step1 = new byte[]{5, 1, 2};
-                sos.write(step1);
-                byte[] resp1 = new byte[2];
-                int len = sis.read(resp1);
+                byte[] clienttMethod = new byte[]{5, 1, 2};
+                sos.write(clienttMethod);
+                byte[] serverMethod = new byte[2];
+                int len = sis.read(serverMethod);
                 if(len <= 0){
                     System.out.println("No Data Recv");
                     return;
                 }
-                if(resp1[1] == 0x02){
+                if(serverMethod[1] == 0x02){
                     //System.out.println("Stay tuned for pwd authentication");
-                    int uLen = client.username.getBytes().length;
-                    int pLen = client.pwd.getBytes().length;
-                    byte[] auth = new byte[3 + uLen + pLen];
-                    auth[0] = 0x01;
-                    auth[1] = (byte) uLen;
-                    System.arraycopy(client.username.getBytes(), 0, auth, 2, uLen);
-                    auth[2 + uLen] = (byte) pLen;
-                    System.arraycopy(client.pwd.getBytes(), 0, auth, 3 + uLen, pLen);
-                    sos.write(auth);
-                    byte[] authRes = new byte[2];
-                    len = sis.read(authRes);
-                    if(len <= 1){
-                        System.out.println("Auth Failed Check Parameters");
+                    boolean authRes = doAuthentication(sis, sos);
+                    if(!authRes)
                         return;
-                    }
-                    if(authRes[1] != 0x00){
-                        System.out.println("Username Or Password Error");
-                        return;
-                    }
                 }
-                byte[] cbuf = new byte[1024];
+                byte[] cbuf = new byte[2048];
                 len = cis.read(cbuf);
                 if(len <= 1){
                     System.out.println("request format error");
@@ -119,15 +102,17 @@ public class SocketClient{
                 }
                 //find host
                 //TODO:
-//                String httpreq = new String(cbuf, 0, len);
-                String httpreq = new String(buildHttpRequest());
-                String[] addr_port = parseHttpReq(httpreq);
+                String httpreq = new String(cbuf, 0, len);
+                HttpParser parse = HttpParser.parse(httpreq);
+                String[] addr_port = parse.getAddrPort();
                 if(addr_port == null){
                     System.out.println("parsed host error");
                     return;
                 }
                 String addr = addr_port[0];
                 int port = Integer.parseInt(addr_port[1]);
+
+                System.out.println("accept -> " + addr + ":" + port);
 
                 //send data
                 byte[] data = new byte[512];
@@ -156,18 +141,18 @@ public class SocketClient{
 
                 //send http request
                 //return 404? try build my own http request :) test success
-                byte[] buildreq = buildHttpRequest();
+                String headers = parse.generateRequestHeader().toString();
+//                System.out.println("headers = " + headers);
+                byte[] buildreq = headers.getBytes();
                 sos.write(buildreq);
-                //TODO:
-//                sos.write(cbuf);
 
-                byte[] httpres = new byte[1024];
+                byte[] httpres = new byte[8192];
 
                 len = 0;
                 while((len = sis.read(httpres)) != -1){
                     cos.write(httpres, 0, len);
-                    String responseText = new String(httpres, 0, len);
-                    System.out.println(responseText);
+//                    String responseText = new String(httpres, 0, len);
+//                    System.out.println(responseText);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -182,33 +167,32 @@ public class SocketClient{
             }
         }
 
-        private byte[] buildHttpRequest() {
-            StringBuilder builder = new StringBuilder();
-            builder.append("GET " + "/get" + " HTTP/1.1\r\n");
-            builder.append("Host: httpbin.org:80\r\n");
-            builder.append("User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727; TheWorld)\r\n");
-            builder.append("Accept: text/html,application/xhtml+xml,application/xml.application/json;q=0.9,*/*;q=0.8\r\n");
-            builder.append("Accept-Language: en-US;q=0.7,en;q=0.3\r\n");
-            builder.append("Connection: close\r\n\r\n");
-            return builder.toString().getBytes();
-        }
-
-        private String[] parseHttpReq(String httpreq){
-            String[] split = httpreq.split("\\n");
-            List<String> host_ = Arrays.stream(split).filter((item) -> item.startsWith("Host:")).collect(Collectors.toList());
-            if(host_ ==null || host_.size() == 0){
-                System.out.println("No Host Found");
-                return null;
+        private boolean doAuthentication(InputStream sis, OutputStream sos){
+            int uLen = client.username.getBytes().length;
+            int pLen = client.pwd.getBytes().length;
+            byte[] auth = new byte[3 + uLen + pLen];
+            auth[0] = 0x01;
+            auth[1] = (byte) uLen;
+            System.arraycopy(client.username.getBytes(), 0, auth, 2, uLen);
+            auth[2 + uLen] = (byte) pLen;
+            System.arraycopy(client.pwd.getBytes(), 0, auth, 3 + uLen, pLen);
+            try {
+                sos.write(auth);
+                byte[] authRes = new byte[2];
+                int len = sis.read(authRes);
+                if(len <= 1){
+                    System.out.println("Auth Failed Check Parameters");
+                    return false;
+                }
+                if(authRes[1] != 0x00){
+                    System.out.println("Username Or Password Error");
+                    return false;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
             }
-            String host = host_.get(0).split(" ")[1];
-            String[] path = host.split(":");
-            String addr = path[0];
-            String port;
-            if(path.length <= 1)
-                port = "80";
-            else
-                port = path[1].trim();
-            return new String[]{addr, port};
+            return true;
         }
     }
 }

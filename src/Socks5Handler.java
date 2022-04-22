@@ -217,7 +217,7 @@ public class Socks5Handler {
             relay.doRelay(client, target, targetPort);
 
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            System.err.println("handler_1: " + e.getMessage());
         }
     }
 }

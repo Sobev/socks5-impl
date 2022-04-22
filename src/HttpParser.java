@@ -1,7 +1,4 @@
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @description:
@@ -33,8 +30,19 @@ public class HttpParser {
         builder.append("Accept: text/html,application/xhtml+xml,application/xml.application/json;q=0.9,*/*;q=0.8\r\n");
         builder.append("Accept-Language: en-US;q=0.7,en;q=0.3\r\n");
         builder.append("Connection: close\r\n\r\n");
-        HttpParser res = HttpParser.parse(builder.toString());
-        System.out.println(res);
+        HttpParser parse = HttpParser.parse(builder.toString());
+        StringBuilder builder1 = parse.generateRequestHeader();
+        System.out.println(builder1.toString());
+    }
+
+    public StringBuilder generateRequestHeader(){
+        StringBuilder builder = new StringBuilder();
+        builder.append(method + " " + uri + " " + httpVersion + "\r\n");
+        headers.forEach((k, v) -> {
+            builder.append(k + ": " + v + "\r\n");
+        });
+        builder.append("\r\n");
+        return builder;
     }
 
     public static HttpParser parse(String rawRequest){
@@ -55,24 +63,35 @@ public class HttpParser {
             uri = requestLineArr[1];
             httpVersion = requestLineArr[2];
         }
-        Map<String, String> headers = new HashMap<>();
+        Map<String, String> headers = new LinkedHashMap<>();
         for (int i = 1; i < lines.size(); i++) {
             String item = lines.get(i);
             if(item.equals(""))
                 continue;
-            String[] arr = item.split(" ");
+            String[] arr = item.split(": ");
             headers.put(arr[0], arr[1]);
         }
+        fillHeaders(headers);
         return new HttpParser(method, uri, httpVersion, headers);
     }
 
-    @Override
-    public String toString() {
-        return "HttpParser{" +
-                "method='" + method + '\'' +
-                ", uri='" + uri + '\'' +
-                ", httpVersion='" + httpVersion + '\'' +
-                ", headers=" + headers +
-                '}';
+    private static void fillHeaders(Map<String, String> headers){
+            headers.putIfAbsent("User-Agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727; TheWorld)");
+            headers.putIfAbsent("Accept", "text/html,application/xhtml+xml,application/xml.application/json;q=0.9,*/*;q=0.8");
+            headers.putIfAbsent("Accept-Language", "en-US;q=0.7,en;q=0.3");
+            //设置为keep-alive用不了? :(
+            headers.putIfAbsent("Connection", "close");
+    }
+
+    public String[] getAddrPort(){
+        String host = this.headers.get("Host");
+        if(host == null || host.equals(""))
+            return null;
+        String[] arr = host.split(":");
+        String addr = arr[0];
+        String port = "80";
+        if(arr.length > 1)
+            port = arr[1];
+        return new String[]{addr, port};
     }
 }
