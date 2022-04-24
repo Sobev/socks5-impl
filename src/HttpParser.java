@@ -31,18 +31,18 @@ public class HttpParser {
         builder.append("Accept-Language: en-US;q=0.7,en;q=0.3\r\n");
         builder.append("Connection: close\r\n\r\n");
         HttpParser parse = HttpParser.parse(builder.toString());
-        StringBuilder builder1 = parse.generateRequestHeader();
-        System.out.println(builder1.toString());
+        String s = parse.generateRequestHeader();
+        System.out.println(s);
     }
 
-    public StringBuilder generateRequestHeader(){
+    public String generateRequestHeader(){
         StringBuilder builder = new StringBuilder();
         builder.append(method + " " + uri + " " + httpVersion + "\r\n");
         headers.forEach((k, v) -> {
             builder.append(k + ": " + v + "\r\n");
         });
         builder.append("\r\n");
-        return builder;
+        return builder.toString();
     }
 
     public static HttpParser parse(String rawRequest){
@@ -78,8 +78,8 @@ public class HttpParser {
     }
 
     private static void fillHeaders(Map<String, String> headers){
-            headers.putIfAbsent("User-Agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727; TheWorld)");
-            headers.putIfAbsent("Accept", "text/html,application/xhtml+xml,application/xml.application/json;q=0.9,*/*;q=0.8");
+            headers.putIfAbsent("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36");
+            headers.putIfAbsent("Accept", "*/*");
             headers.putIfAbsent("Accept-Language", "en-US;q=0.7,en;q=0.3");
             //设置为keep-alive用不了? :(
             headers.putIfAbsent("Connection", "close");
@@ -95,5 +95,21 @@ public class HttpParser {
         if(arr.length > 1)
             port = arr[1];
         return new String[]{addr, port};
+    }
+
+    public String getHttpVersion() {
+        return httpVersion;
+    }
+
+    public Map<String, String> getHeaders() {
+        return headers;
+    }
+
+    public String getMethod() {
+        return method;
+    }
+
+    public String getUri() {
+        return uri;
     }
 }

@@ -16,14 +16,13 @@ public class Socks5Relay {
     public void doRelay(Socket client, String addr, int port){
         Socket socket = null;
         try {
-//            socket = getSocket(addr, port);
+//            socket = new Socket(addr, port);
 //            Socks5Pipe c2s = new Socks5Pipe(client, socket, "c2s");
 //            Socks5Pipe s2c = new Socks5Pipe(socket, client, "s2c");
 //
 //            c2s.relay();
 //            s2c.relay();
             byPass(client, addr, port);
-//                SSLHttpsTest.testSocketSSL(client);
         } catch (IOException e) {
             System.err.println("relay1: " + e.getMessage());
         }
@@ -37,8 +36,8 @@ public class Socks5Relay {
     private void byPass(Socket client, String addr, int port) throws IOException{
         if(port == 443){
             SSLSocket sslSocket = getSSLSocket(addr, port);
-            SSLSocks5Pipe c2s = new SSLSocks5Pipe(client, sslSocket, "c2sSSL", 1);
-            SSLSocks5Pipe s2c = new SSLSocks5Pipe(client, sslSocket, "c2sSSL", 2);
+            SSLSocks5Pipe c2s = new SSLSocks5Pipe(client, sslSocket, "c2sSSL", FlowDirection.CLIENT2SERVER);
+            SSLSocks5Pipe s2c = new SSLSocks5Pipe(client, sslSocket, "c2sSSL", FlowDirection.SERVER2CLIENT);
             c2s.relay();
             s2c.relay();
         }else {

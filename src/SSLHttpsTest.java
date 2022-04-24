@@ -21,29 +21,45 @@ public class SSLHttpsTest {
         }
     }
 
+    public static void httpsSocketByte(byte[] data) throws IOException {
+        SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket("www.baidu.com", 443);
+        socket.setEnabledCipherSuites(socket.getSupportedCipherSuites());
+        OutputStream os = socket.getOutputStream();
+        InputStream is = socket.getInputStream();
+        System.out.println(new String(data));
+        os.write(data);
+        byte[] recv = new byte[1024];
+        int len;
+        while ((len = is.read(recv)) != -1){
+            String s = new String(recv, 0, len);
+            System.out.println("httpsSocketByte = " + s);
+        }
+    }
+
     public static void testSocketSSL(Socket client) throws IOException {
             SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket("urcate.shop", 443);
+            SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket("www.baidu.com", 443);
             String[] supportedCipherSuites = socket.getSupportedCipherSuites();
             socket.setEnabledCipherSuites(supportedCipherSuites);
             OutputStream os = socket.getOutputStream();
             InputStream is = socket.getInputStream();
             StringBuilder builder = new StringBuilder();
             builder.append("GET " + "/" + " HTTP/1.1\r\n");
-            builder.append("Host: urcate.shop:443\r\n");
-            builder.append("User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727; TheWorld)\r\n");
-            builder.append("Accept: text/html,application/xhtml+xml,application/xml.application/json;q=0.9,*/*;q=0.8\r\n");
+            builder.append("Host: www.baidu.com:443\r\n");
+            builder.append("User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36\r\n");
+            builder.append("Accept: */*\r\n");
             builder.append("Accept-Language: en-US;q=0.7,en;q=0.3\r\n");
             builder.append("Connection: close\r\n\r\n");
             byte[] data = builder.toString().getBytes();
-            OutputStream cos = client.getOutputStream();
+//            OutputStream cos = client.getOutputStream();
             os.write(data);
             byte[] recv = new byte[1024];
             int len;
             while ((len = is.read(recv)) != -1){
                 String s = new String(recv, 0, len);
                 System.out.println("s = " + s);
-                cos.write(recv, 0, len);
+//                cos.write(recv, 0, len);
             }
     }
 

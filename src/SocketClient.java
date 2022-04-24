@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -11,7 +12,7 @@ import java.net.Socket;
  * TODO: []加密请求
  * TODO: []支持https
  */
-public class SocketClient{
+public class SocketClient {
 
     //SOCKS5 server
     private String serverAddr;
@@ -39,7 +40,7 @@ public class SocketClient{
     public void accept() {
         try {
             ServerSocket serverSocket = new ServerSocket(25800);
-            while (true){
+            while (true) {
                 Socket socket = serverSocket.accept();
                 new ClientSocketHandler(socket, this);
             }
@@ -48,7 +49,7 @@ public class SocketClient{
         }
     }
 
-    static class ClientSocketHandler implements Runnable{
+    static class ClientSocketHandler implements Runnable {
 
         private Socket socket;
 
@@ -58,14 +59,6 @@ public class SocketClient{
             this.socket = socket;
             this.client = client;
             new Thread(this).start();
-        }
-
-        public static void main(String[] args) {
-            int port = 8080;
-            byte p1 = (byte) (port >> 8 & 0xff);
-            byte p2 = (byte) (port & 0xff);
-            //parse byte to port
-            int parsedPort = (p1 & 0xff) << 8 | (p2 & 0xff);
         }
 
         @Override
@@ -80,78 +73,44 @@ public class SocketClient{
                 InputStream sis = ss.getInputStream();
                 OutputStream sos = ss.getOutputStream();
                 //step 1
-                byte[] clienttMethod = new byte[]{5, 1, 2};
-                sos.write(clienttMethod);
-                byte[] serverMethod = new byte[2];
-                int len = sis.read(serverMethod);
-                if(len <= 0){
-                    System.out.println("No Data Recv");
-                    return;
-                }
-                if(serverMethod[1] == 0x02){
-                    //System.out.println("Stay tuned for pwd authentication");
+                if (getAuthMethod(sis, sos) == 0x02) {
                     boolean authRes = doAuthentication(sis, sos);
-                    if(!authRes)
+                    if (!authRes)
                         return;
                 }
-                byte[] cbuf = new byte[2048];
-                len = cis.read(cbuf);
-                if(len <= 1){
-                    System.out.println("request format error");
-                    return;
-                }
+                byte[] buf = new byte[2048];
+                int len;
+                len = cis.read(buf);
                 //find host
-                String httpreq = new String(cbuf, 0, len);
+                String httpreq = new String(buf, 0, len);
                 HttpParser parse = HttpParser.parse(httpreq);
-                String[] addr_port = parse.getAddrPort();
-                if(addr_port == null){
-                    System.out.println("parsed host error");
-                    return;
-                }
-                String addr = addr_port[0];
-                int port = Integer.parseInt(addr_port[1]);
+                String addr = parse.getAddrPort()[0];
+                int port = Integer.parseInt(parse.getAddrPort()[1]);
 
                 System.out.println("accept -> " + addr + ":" + port);
 
-                //send data
-                byte[] data = new byte[512];
-                data[0] = 0x05;
-                data[1] = 0x01;
-                data[2] = 0x00;
-                data[3] = 0x03;
-                data[4] = (byte) addr.getBytes().length;
-                System.arraycopy(addr.getBytes(), 0, data, 5, addr.getBytes().length);
-                //parse port into byte
-                byte p1 = (byte) (port >> 8 & 0xff);
-                byte p2 = (byte) (port & 0xff);
-                data[5 + data[4]] = p1;
-                data[5 + data[4] + 1] = p2;
-                sos.write(data);
-
-                byte[] res = new byte[10];
-                len = sis.read(res);
-
-                if(len <= 0)
-                    return;
-                if(res[1] != 0x00){
-                    System.out.println("地址解析失败 \n 支持IPV4, DOMAIN");
+                //forward request or confirm https tunnel
+                byte[] res = forwardAddress(sis, sos, addr, port);
+                if (res[1] != 0x00) {
+                    System.out.println("地址解析失败 ... 支持IPV4, DOMAIN");
                     return;
                 }
+                //如果为Connect那么已经返回连接成功 并重新获取请求头
+                byte[] headers;
+                if (parse.getMethod().equals("CONNECT")) {
+                    headers = getHttpsEncryptedData(sis, sos, cis, cos, parse);
+                } else {
+                    headers = parse.generateRequestHeader().getBytes();
+                }
+                sos.write(headers);
 
-                //send http request
-                //return 404? try build my own http request :) test success
-                String headers = parse.generateRequestHeader().toString();
-//                System.out.println("headers = " + headers);
-                byte[] buildreq = headers.getBytes();
-                sos.write(buildreq);
-
-                byte[] httpres = new byte[8192];
+                byte[] resp = new byte[8192];
 
                 len = 0;
-                while((len = sis.read(httpres)) != -1){
-                    cos.write(httpres, 0, len);
-                    String responseText = new String(httpres, 0, len);
-                    System.out.println(responseText);
+                while ((len = sis.read(resp)) != -1) {
+                    cos.write(resp, 0, len);
+//                    String responseText = new String(resp, 0, len);
+//                    System.out.println(responseText);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -166,7 +125,22 @@ public class SocketClient{
             }
         }
 
-        private boolean doAuthentication(InputStream sis, OutputStream sos){
+        private byte getAuthMethod(InputStream sis, OutputStream sos) {
+            byte[] clientMethod = new byte[]{5, 1, 2};
+            byte[] serverMethod = new byte[2];
+            try {
+                sos.write(clientMethod);
+                int len = sis.read(serverMethod);
+                if (len <= 0) {
+                    throw new ConnectException("No Data Recv");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return serverMethod[1];
+        }
+
+        private boolean doAuthentication(InputStream sis, OutputStream sos) {
             int uLen = client.username.getBytes().length;
             int pLen = client.pwd.getBytes().length;
             byte[] auth = new byte[3 + uLen + pLen];
@@ -179,11 +153,11 @@ public class SocketClient{
                 sos.write(auth);
                 byte[] authRes = new byte[2];
                 int len = sis.read(authRes);
-                if(len <= 1){
+                if (len <= 1) {
                     System.out.println("Auth Failed Check Parameters");
                     return false;
                 }
-                if(authRes[1] != 0x00){
+                if (authRes[1] != 0x00) {
                     System.out.println("Username Or Password Error");
                     return false;
                 }
@@ -192,6 +166,57 @@ public class SocketClient{
                 return false;
             }
             return true;
+        }
+
+        private byte[] forwardAddress(InputStream sis, OutputStream sos, String addr, Integer port) {
+            byte[] res = new byte[10];
+            int len;
+            byte[] data = new byte[512];
+            data[0] = 0x05;
+            data[1] = 0x01;
+            data[2] = 0x00;
+            data[3] = 0x03;
+            data[4] = (byte) addr.getBytes().length;
+            System.arraycopy(addr.getBytes(), 0, data, 5, addr.getBytes().length);
+            //parse port into byte
+            byte p1 = (byte) (port >> 8 & 0xff);
+            byte p2 = (byte) (port & 0xff);
+            data[5 + data[4]] = p1;
+            data[5 + data[4] + 1] = p2;
+            try {
+                sos.write(data);
+                len = sis.read(res);
+                if (len <= 0)
+                    throw new ConnectException("REP 0 received failed");
+            } catch (
+                    IOException e) {
+                e.printStackTrace();
+            }
+            return res;
+        }
+
+        private byte[] getHttpsEncryptedData(InputStream sis, OutputStream sos, InputStream cis, OutputStream cos, HttpParser parse) {
+            StringBuilder builder = new StringBuilder();
+            try {
+                cos.write((parse.getHttpVersion() + " 200 Connection established\r\n\r\n").getBytes());
+                int len = 0;
+                byte[] buf = new byte[1024];
+                while ((len = cis.read(buf)) != -1) {
+                    String s = new String(buf, 0, len);
+                    builder.append(s);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return builder.toString().getBytes();
+        }
+
+        public static void main(String[] args) {
+            int port = 8080;
+            byte p1 = (byte) (port >> 8 & 0xff);
+            byte p2 = (byte) (port & 0xff);
+            //parse byte to port
+            int parsedPort = (p1 & 0xff) << 8 | (p2 & 0xff);
         }
     }
 }

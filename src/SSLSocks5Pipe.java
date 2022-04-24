@@ -27,7 +27,7 @@ public class SSLSocks5Pipe implements Runnable{
 
     public void relay(){
         Thread thread = new Thread(this);
-        if(flag == 1)
+        if(flag == FlowDirection.CLIENT2SERVER)
             thread.setName("Thread-" + socket.getInetAddress() + "-> " + sslSocket.getInetAddress());
         else
             thread.setName("Thread-" + sslSocket.getInetAddress() + "-> " + socket.getInetAddress());
@@ -50,12 +50,8 @@ public class SSLSocks5Pipe implements Runnable{
             byte[] recv = new byte[8192];
             int len = 0;
             while((len = is.read(recv)) > 0){
-                String data = new String(recv, 0, len);
-                if(flag == 1){
-                    System.out.println("c2sData = \n" + data);
-                }else{
-                    System.out.println("s2cData = \n" + data);
-                }
+//                String data = new String(recv, 0, len);
+//                System.out.println(this.id + "\n" + data);
                 os.write(recv, 0, len);
             }
 //                close();
