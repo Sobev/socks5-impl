@@ -60,7 +60,7 @@ public class SocketClient {
         public ClientSocketHandler(Socket socket, SocketClient client) {
             this.socket = socket;
             this.client = client;
-            this.abortHttps = true;
+//            this.abortHttps = true;
             new Thread(this).start();
         }
 
@@ -204,9 +204,9 @@ public class SocketClient {
         private byte[] getHttpsEncryptedData(InputStream sis, OutputStream sos, InputStream cis, OutputStream cos, HttpParser parse) {
             StringBuilder builder = new StringBuilder();
             try {
-                cos.write((parse.getHttpVersion() + " 200 Connection established\r\n\r\n").getBytes());
+                cos.write((parse.getHttpVersion() + " 200 Connection established\r\nProxy-agent: ProxyServer/1.0\r\n\r\n").getBytes());
                 int len = 0;
-                byte[] buf = new byte[1024];
+                byte[] buf = new byte[2048];
                 while ((len = cis.read(buf)) != -1) {
                     String s = new String(buf, 0, len);
                     builder.append(s);

@@ -8,7 +8,7 @@ import java.net.Socket;
  * @description:
  * @author: luojx
  * @create 2022-04-22  14:15
- * TODO: duplicate code make a flag to divide them
+ *
  */
 public class SSLSocks5Pipe implements Runnable{
     private String id;
@@ -50,11 +50,11 @@ public class SSLSocks5Pipe implements Runnable{
             byte[] recv = new byte[8192];
             int len = 0;
             while((len = is.read(recv)) > 0){
-//                String data = new String(recv, 0, len);
-//                System.out.println(this.id + "\n" + data);
+                String data = new String(recv, 0, len);
+                System.out.println(this.id + "\n" + data);
                 os.write(recv, 0, len);
             }
-//                close();
+                close();
         } catch (IOException e) {
             close();
             System.err.println("relay2: " + e.getMessage());

@@ -16,13 +16,13 @@ public class Socks5Relay {
     public void doRelay(Socket client, String addr, int port){
         Socket socket = null;
         try {
-//            socket = new Socket(addr, port);
-//            Socks5Pipe c2s = new Socks5Pipe(client, socket, "c2s");
-//            Socks5Pipe s2c = new Socks5Pipe(socket, client, "s2c");
-//
-//            c2s.relay();
-//            s2c.relay();
-            byPass(client, addr, port);
+            socket = new Socket(addr, port);
+            Socks5Pipe c2s = new Socks5Pipe(client, socket, "c2s");
+            Socks5Pipe s2c = new Socks5Pipe(socket, client, "s2c");
+
+            c2s.relay();
+            s2c.relay();
+//            byPass(client, addr, port);
         } catch (IOException e) {
             System.err.println("relay1: " + e.getMessage());
         }
@@ -37,7 +37,7 @@ public class Socks5Relay {
         if(port == 443){
             SSLSocket sslSocket = getSSLSocket(addr, port);
             SSLSocks5Pipe c2s = new SSLSocks5Pipe(client, sslSocket, "c2sSSL", FlowDirection.CLIENT2SERVER);
-            SSLSocks5Pipe s2c = new SSLSocks5Pipe(client, sslSocket, "c2sSSL", FlowDirection.SERVER2CLIENT);
+            SSLSocks5Pipe s2c = new SSLSocks5Pipe(client, sslSocket, "s2cSSL", FlowDirection.SERVER2CLIENT);
             c2s.relay();
             s2c.relay();
         }else {
@@ -83,9 +83,11 @@ public class Socks5Relay {
                 byte[] recv = new byte[8192];
                 int len = 0;
                 while((len = is.read(recv)) > 0){
+                    String s = new String(recv, 0, len);
+                    System.out.println("s = " + s);
                     os.write(recv, 0, len);
                 }
-//                close();
+                close();
             } catch (IOException e) {
                 close();
                 System.err.println("relay2: " + e.getMessage());
@@ -94,10 +96,10 @@ public class Socks5Relay {
 
         private void close(){
                 try {
-                    if(!src.isClosed())
-                        src.close();
-                    if(!target.isClosed()){
-                        target.close();
+                    if(!src.isInputShutdown())
+                        src.shutdownInput();
+                    if(!target.isOutputShutdown()){
+                        target.shutdownOutput();
                     }
                 } catch (IOException e) {
                     System.err.println("relay :close socket error" + e.getMessage());

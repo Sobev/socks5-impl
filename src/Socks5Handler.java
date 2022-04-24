@@ -61,7 +61,7 @@ public class Socks5Handler {
                         //waiting requests
                         waitingRequests(client);
                     }
-
+                    break;
                 }
             }
 
