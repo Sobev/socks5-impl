@@ -55,9 +55,12 @@ public class SocketClient {
 
         private SocketClient client;
 
+        private boolean abortHttps = false;
+
         public ClientSocketHandler(Socket socket, SocketClient client) {
             this.socket = socket;
             this.client = client;
+            this.abortHttps = true;
             new Thread(this).start();
         }
 
@@ -86,7 +89,10 @@ public class SocketClient {
                 HttpParser parse = HttpParser.parse(httpreq);
                 String addr = parse.getAddrPort()[0];
                 int port = Integer.parseInt(parse.getAddrPort()[1]);
-
+                if(port == 443 && abortHttps){
+                    System.err.println("abort -> " + addr + ":" + port);
+                    return;
+                }
                 System.out.println("accept -> " + addr + ":" + port);
 
                 //forward request or confirm https tunnel
