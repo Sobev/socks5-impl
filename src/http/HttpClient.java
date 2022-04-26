@@ -129,18 +129,22 @@ public class HttpClient extends Thread {
                 } else {
                     try {
                         System.out.println(request);
-                        InputStream inputStream = clientSocket.getInputStream();
-                        byte[] buffer = new byte[1024];
-                        int len;
+                        String header;
                         StringBuilder rawHeader = new StringBuilder();
-                        request += "\r";
-                        rawHeader.append(request);
-                        while ((len = inputStream.read(buffer)) != -1) {
-                            rawHeader.append(new String(buffer, 0, len));
-                        }
+                        rawHeader.append(request+"\r\n");
+                        do {
+                            header = readLine(clientSocket);
+                            if(header.startsWith("Proxy-Connection")) {
+                                header = "Connection: close";
+                            }
+                            rawHeader.append(header+"\r\n");
+                        } while (!"".equals(header));
+                        final Socket forwardSocket;
+                        forwardSocket = new Socket("127.0.0.1", 25867);
+                        OutputStream outputStream = forwardSocket.getOutputStream();
                         HttpParser parseRes = HttpParser.parse(rawHeader.toString());
                         String[] addrPort = parseRes.getAddrPort();
-                        buffer = new byte[1024];
+                        byte[] buffer = new byte[256];
                         buffer[0] = (byte) addrPort[0].getBytes().length;
                         System.arraycopy(addrPort[0].getBytes(), 0, buffer, 1, buffer[0]);
                         int port = Integer.parseInt(addrPort[1]);
@@ -148,11 +152,10 @@ public class HttpClient extends Thread {
                         byte portByte2 = (byte) (port & 0xff);
                         buffer[1 + buffer[0]] = portByte1;
                         buffer[2 + buffer[0]] = portByte2;
-                        final Socket forwardSocket;
+                        outputStream.write(buffer);
+                        System.out.println(forwardSocket);
+                            forwardHttpData(forwardSocket, rawHeader.toString());
                         try {
-                            forwardSocket = new Socket("127.0.0.1", 25867);
-                            OutputStream outputStream = forwardSocket.getOutputStream();
-                            outputStream.write(buffer);
                             Thread remoteToClient = new Thread() {
                                 @Override
                                 public void run() {
@@ -160,7 +163,6 @@ public class HttpClient extends Thread {
                                 }
                             };
                             remoteToClient.start();
-                            forwardHttpData(forwardSocket, rawHeader.toString());
                             try {
                                 remoteToClient.join();
                             } finally {
@@ -205,17 +207,14 @@ public class HttpClient extends Thread {
                 try {
                     OutputStream outputStream = outputSocket.getOutputStream();
                     try {
-                        byte[] buffer = new byte[4096];
-                        int read;
-                        do {
-                            read = inputStream.read(buffer);
-                            if (read > 0) {
-                                outputStream.write(buffer, 0, read);
-                                if (inputStream.available() < 1) {
-                                    outputStream.flush();
-                                }
+                        byte[] buffer = new byte[8192];
+                        int len;
+                        while ((len = inputStream.read(buffer)) != -1){
+                            outputStream.write(buffer, 0, len);
+                            if (inputStream.available() < 1) {
+                                outputStream.flush();
                             }
-                        } while (read >= 0);
+                        }
                     } finally {
                         if (!outputSocket.isOutputShutdown()) {
                             outputSocket.shutdownOutput();

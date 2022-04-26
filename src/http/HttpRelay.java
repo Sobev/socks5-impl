@@ -34,8 +34,6 @@ public class HttpRelay implements Runnable{
 
     public static class HttpHandler extends Thread{
 
-        public static final Pattern HOST_PATTERN = Pattern.compile("Host: (.+):?([0-9]+)?");
-
         private Socket clientSocket;
 
         public HttpHandler(Socket client){
@@ -48,7 +46,7 @@ public class HttpRelay implements Runnable{
             Socket forwardSocket;
             try {
                 InputStream inputStream = clientSocket.getInputStream();
-                byte[] buffer = new byte[1024];
+                byte[] buffer = new byte[256];
                 int len = inputStream.read(buffer);
                 int hostLen = buffer[0];
                 String host = new String(buffer, 1, hostLen);
@@ -58,24 +56,25 @@ public class HttpRelay implements Runnable{
                 int port = (portByte1 << 8 & 0xff) | (portByte2 & 0xff);
                 System.out.println(host + ":" + port);
 
-                forwardSocket = new Socket(host, port);
                 try {
-                    Thread thread = new Thread(() -> {
+                    forwardSocket = new Socket(host, port);
+                    Thread clientToRemote = new Thread(() -> {
                         forwardData(clientSocket, forwardSocket);
                     });
-                    thread.start();
-                    Thread thread1 = new Thread(() -> {
+                    clientToRemote.start();
+                    Thread remoteToClient = new Thread(() -> {
                         forwardData(forwardSocket, clientSocket);
                     });
-                    thread1.start();
+                    remoteToClient.start();
                     try {
-                        thread.join();
-                        thread1.join();
+                        clientToRemote.join();
+                        remoteToClient.join();
                     } finally {
                         forwardSocket.close();
+                        clientSocket.close();
                     }
-                }finally {
-                    clientSocket.close();
+                }catch (Exception e){
+                    e.printStackTrace();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -88,20 +87,25 @@ public class HttpRelay implements Runnable{
                 try {
                     OutputStream outputStream = outputSocket.getOutputStream();
                     try {
-                        byte[] buffer = new byte[4096];
-                        int read;
-                        do {
-                            read = inputStream.read(buffer);
-                            if (read > 0) {
-                                outputStream.write(buffer, 0, read);
-                                if (inputStream.available() < 1) {
-                                    outputStream.flush();
-                                }
-                            }
-                        } while (read >= 0);
+                        byte[] buffer = new byte[8192];
+                        int len;
+                        while ((len = inputStream.read(buffer)) != -1){
+//                            String s = new String(buffer, 0, len);
+//                            System.out.println("recv = \n" + s);
+                            outputStream.write(buffer, 0, len);
+//                            if (inputStream.available() < 1) {
+//                                outputStream.flush();
+//                            }
+                        }
                     } finally {
+//                        if (!outputSocket.isOutputShutdown()) {
+//                            outputSocket.shutdownOutput();
+//                        }
                     }
                 } finally {
+//                    if (!inputSocket.isInputShutdown()) {
+//                        inputSocket.shutdownInput();
+//                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace();  // TODO: implement catch

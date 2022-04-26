@@ -15,25 +15,10 @@ import java.net.Socket;
 public class SSLHttpsTest {
     public static void main(String[] args) {
         try {
-            testSocketSSL(null);
+//            testSocketSSL(null);
+            testPlainHttp();
         } catch (IOException e) {
             e.printStackTrace();
-        }
-    }
-
-    public static void httpsSocketByte(byte[] data) throws IOException {
-        SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-        SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket("www.baidu.com", 443);
-        socket.setEnabledCipherSuites(socket.getSupportedCipherSuites());
-        OutputStream os = socket.getOutputStream();
-        InputStream is = socket.getInputStream();
-        System.out.println(new String(data));
-        os.write(data);
-        byte[] recv = new byte[1024];
-        int len;
-        while ((len = is.read(recv)) != -1){
-            String s = new String(recv, 0, len);
-            System.out.println("httpsSocketByte = " + s);
         }
     }
 
@@ -61,6 +46,31 @@ public class SSLHttpsTest {
                 System.out.println("s = " + s);
 //                cos.write(recv, 0, len);
             }
+    }
+    public static void testPlainHttp() throws IOException {
+        Socket socket = new Socket("httpbin.org", 80);
+        OutputStream os = socket.getOutputStream();
+        InputStream is = socket.getInputStream();
+        StringBuilder builder = new StringBuilder();
+        builder.append("GET http://httpbin.org/get HTTP/1.1\r\n");
+        builder.append("Host: httpbin.org\r\n");
+        builder.append("Connection: close\r\n");
+        builder.append("Cache-Control: max-age=0\r\n");
+        builder.append("Upgrade-Insecure-Requests: 1\r\n");
+        builder.append("User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36\r\n");
+        builder.append("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\n");
+        builder.append("Accept-Encoding: gzip, deflate\r\n");
+        builder.append("Accept-Language: zh-CN,zh;q=0.9\r\n\r\n");
+        byte[] data = builder.toString().getBytes();
+//            OutputStream cos = client.getOutputStream();
+        os.write(data);
+        byte[] recv = new byte[1024];
+        int len;
+        while ((len = is.read(recv)) != -1){
+            String s = new String(recv, 0, len);
+            System.out.println("s = " + s);
+//                cos.write(recv, 0, len);
+        }
     }
 
     public static void testServerSocket(){
