@@ -1,5 +1,3 @@
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -22,40 +20,10 @@ public class Socks5Relay {
 
             c2s.relay();
             s2c.relay();
-//            byPass(client, addr, port);
         } catch (IOException e) {
             System.err.println("relay1: " + e.getMessage());
         }
     }
-
-    /**
-    * @Description: 分流
-    * @param: 区分http和https流量
-    * @return:
-    */
-    private void byPass(Socket client, String addr, int port) throws IOException{
-        if(port == 443){
-            SSLSocket sslSocket = getSSLSocket(addr, port);
-            SSLSocks5Pipe c2s = new SSLSocks5Pipe(client, sslSocket, "c2sSSL", FlowDirection.CLIENT2SERVER);
-            SSLSocks5Pipe s2c = new SSLSocks5Pipe(client, sslSocket, "s2cSSL", FlowDirection.SERVER2CLIENT);
-            c2s.relay();
-            s2c.relay();
-        }else {
-            Socket socket = new Socket(addr, port);
-            Socks5Pipe c2s = new Socks5Pipe(client, socket, "c2s");
-            Socks5Pipe s2c = new Socks5Pipe(socket, client, "s2c");
-
-            c2s.relay();
-            s2c.relay();
-        }
-    }
-
-    private SSLSocket getSSLSocket(String addr, int port) throws IOException {
-                SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-                SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(addr, port);
-                sslSocket.setEnabledCipherSuites(sslSocket.getSupportedCipherSuites());
-                return sslSocket;
-        }
 
     static class Socks5Pipe implements Runnable{
         private String id;
@@ -70,8 +38,8 @@ public class Socks5Relay {
 
         public void relay(){
             Thread thread = new Thread(this);
-            thread.setName("Thread-" + src.getInetAddress() + "-> " + target.getInetAddress());
-            System.out.println(thread.getName() + " started");
+            thread.setName(src.getInetAddress() + "-> " + target.getInetAddress());
+            System.out.println(thread.getName());
             thread.start();
         }
 
@@ -83,8 +51,8 @@ public class Socks5Relay {
                 byte[] recv = new byte[8192];
                 int len = 0;
                 while((len = is.read(recv)) > 0){
-                    String s = new String(recv, 0, len);
-                    System.out.println("s = " + s);
+//                    String s = new String(recv, 0, len);
+//                    System.out.println("s = " + s);
                     os.write(recv, 0, len);
                 }
                 close();

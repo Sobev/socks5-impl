@@ -154,7 +154,31 @@ public class HttpClient extends Thread {
                         buffer[2 + buffer[0]] = portByte2;
                         outputStream.write(buffer);
                         System.out.println(forwardSocket);
-                            forwardHttpData(forwardSocket, rawHeader.toString());
+                        try {
+                            if (previousWasR) {
+                                int read = clientSocket.getInputStream().read();
+                                if (read != -1) {
+                                    if (read != '\n') {
+                                        forwardSocket.getOutputStream().write(read);
+                                    }
+//                                    forwardData(clientSocket, forwardSocket);
+                                    forwardHttpData(forwardSocket, rawHeader.toString());
+                                } else {
+                                    if (!forwardSocket.isOutputShutdown()) {
+                                        forwardSocket.shutdownOutput();
+                                    }
+                                    if (!clientSocket.isInputShutdown()) {
+                                        clientSocket.shutdownInput();
+                                    }
+                                }
+                            } else {
+//                                forwardData(clientSocket, forwardSocket);
+                                forwardHttpData(forwardSocket, rawHeader.toString());
+                            }
+                        }catch (Exception e){
+                            e.printStackTrace();
+                        }
+//                        forwardHttpData(forwardSocket, rawHeader.toString());
                         try {
                             Thread remoteToClient = new Thread() {
                                 @Override

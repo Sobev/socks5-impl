@@ -1,11 +1,11 @@
 import http.HttpParser;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @description:
@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
  * TODO: []加密请求
  * TODO: []支持https
  */
-public class SocketClient {
+public class Socks5Client {
 
     //SOCKS5 server
     private String serverAddr;
@@ -27,7 +27,7 @@ public class SocketClient {
 
     private String pwd;
 
-    public SocketClient(String serverAddr, int port, String username, String pwd) {
+    public Socks5Client(String serverAddr, int port, String username, String pwd) {
         this.serverAddr = serverAddr;
         this.port = port;
         this.username = username;
@@ -35,7 +35,7 @@ public class SocketClient {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        SocketClient client = new SocketClient("127.0.0.1", 25866, "sobev", "123456");
+        Socks5Client client = new Socks5Client("127.0.0.1", 25866, "sobev", "123456");
         client.accept();
     }
 
@@ -53,21 +53,16 @@ public class SocketClient {
 
     static class ClientSocketHandler implements Runnable {
 
-        public static final Pattern CONNECT_PATTERN = Pattern.compile("CONNECT (.+):(.+) HTTP/(1\\.[01])",
-                Pattern.CASE_INSENSITIVE);
-
         private Socket socket;
 
-        private SocketClient client;
+        private Socks5Client client;
 
         private boolean abortHttps = false;
 
-        private boolean isSecuredConnection = false;
-
-        public ClientSocketHandler(Socket socket, SocketClient client) {
+        public ClientSocketHandler(Socket socket, Socks5Client client) {
             this.socket = socket;
             this.client = client;
-//            this.abortHttps = true;
+            this.abortHttps = true;
             new Thread(this).start();
         }
 
@@ -93,33 +88,15 @@ public class SocketClient {
                 len = cis.read(buf);
                 //find host
                 String httpreq = new String(buf, 0, len);
-                Matcher matcher = CONNECT_PATTERN.matcher(httpreq);
-                if(matcher.matches()){
-                    String header;
-                    do {
-                        header = readLine(socket);
-                    } while (!"".equals(header));
-                }
                 HttpParser parse = HttpParser.parse(httpreq);
                 String addr = parse.getAddrPort()[0];
                 int port = Integer.parseInt(parse.getAddrPort()[1]);
-//                String addr = matcher.group(1);
-//                int port = Integer.parseInt(matcher.group(2));
-                this.isSecuredConnection = (port == 443);
-
-                if(isSecuredConnection && abortHttps){
+                if(port == 443 && abortHttps){
                     System.err.println("abort -> " + addr + ":" + port);
                     return;
                 }
                 System.out.println("accept -> " + addr + ":" + port);
-//                OutputStreamWriter outputStreamWriter = new OutputStreamWriter(socket.getOutputStream(),
-//                        StandardCharsets.ISO_8859_1);
-//                if(matcher.matches()){
-//                    outputStreamWriter.write("HTTP/" + matcher.group(3) + " 200 Connection established\r\n");
-//                    outputStreamWriter.write("Proxy-agent: Simple/0.1\r\n");
-//                    outputStreamWriter.write("\r\n");
-//                    outputStreamWriter.flush();
-//                }
+
                 //forward request or confirm https tunnel
                 byte[] res = forwardAddress(sis, sos, addr, port);
                 if (res[1] != 0x00) {
@@ -240,19 +217,6 @@ public class SocketClient {
                 e.printStackTrace();
             }
             return builder.toString().getBytes();
-        }
-
-        private String readLine(Socket socket) throws IOException{
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            int next;
-            while((next = socket.getInputStream().read()) != -1){
-                if(next == '\r' || next == '\n'){
-                    break;
-                }else{
-                    byteArrayOutputStream.write(next);
-                }
-            }
-            return byteArrayOutputStream.toString("ISO-8859-1");
         }
 
         public static void main(String[] args) {

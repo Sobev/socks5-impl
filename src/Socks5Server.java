@@ -10,8 +10,8 @@ import java.util.concurrent.LinkedBlockingDeque;
 public class Socks5Server {
     public static void main(String[] args) throws InterruptedException {
         BlockingQueue<Socket> queue = new LinkedBlockingDeque<>();
-        Socks5Acceptor acceptor = new Socks5Acceptor(25866, queue);
-        Socks5Processor processor = new Socks5Processor(queue);
+        SocketAcceptor acceptor = new SocketAcceptor(25866, queue);
+        Socks5Dispatcher processor = new Socks5Dispatcher(queue);
 
         new Thread(acceptor).start();
         new Thread(processor).start();

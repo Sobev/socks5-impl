@@ -211,7 +211,7 @@ public class Socks5Handler {
             String target = new String(addr);
             byte[] port = new byte[]{recv[5 + recv[4]], recv[6 + recv[4]]};
             int targetPort = (port[0] & 0xff) << 8 | (port[1] & 0xff);
-            System.out.println("target = " + target + ":" + targetPort);
+            System.out.println("accept = " + target + ":" + targetPort);
             os.write(new byte[]{5, 0, 0, addType, 0, 0, 0, 0, 0, 0,});
 
             relay.doRelay(client, target, targetPort);

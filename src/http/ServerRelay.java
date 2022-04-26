@@ -98,7 +98,7 @@ public class ServerRelay implements Runnable {
                 try {
                     OutputStream outputStream = outputSocket.getOutputStream();
                     try {
-                        byte[] buffer = new byte[4096];
+                        byte[] buffer = new byte[8192];
                         int read;
                         do {
                             read = inputStream.read(buffer);

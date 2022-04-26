@@ -9,11 +9,11 @@ import java.util.concurrent.BlockingQueue;
  * @create 2022-04-18  15:58
  * @des 接收socket连接
  */
-public class Socks5Acceptor implements Runnable{
+public class SocketAcceptor implements Runnable{
     private int port;
     private BlockingQueue<Socket> queue;
 
-    public Socks5Acceptor(int port, BlockingQueue<Socket> queue) {
+    public SocketAcceptor(int port, BlockingQueue<Socket> queue) {
         this.port = port;
         this.queue = queue;
     }
