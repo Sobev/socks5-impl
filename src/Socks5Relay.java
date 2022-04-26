@@ -64,11 +64,11 @@ public class Socks5Relay {
 
         private void close(){
                 try {
-                    if(!src.isInputShutdown())
-                        src.shutdownInput();
                     if(!target.isOutputShutdown()){
                         target.shutdownOutput();
                     }
+                    if(!src.isInputShutdown())
+                        src.shutdownInput();
                 } catch (IOException e) {
                     System.err.println("relay :close socket error" + e.getMessage());
                 }
