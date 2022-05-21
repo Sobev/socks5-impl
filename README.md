@@ -24,7 +24,7 @@ TODO:
 
 - [ ] SOCKS5加密请求
 
-- [ x ] 支持https
+- [x] 支持https
 
  
 
